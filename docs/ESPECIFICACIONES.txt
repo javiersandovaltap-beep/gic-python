@@ -1,0 +1,503 @@
+# 📋 ESPECIFICACIONES TÉCNICAS - SISTEMA GIC
+
+## Documento de Especificaciones del Proyecto
+**Sistema Gestor Inteligente de Clientes (GIC)**  
+**Fecha**: Febrero 2026  
+**Versión**: 1.0
+
+---
+
+## 1. REQUISITOS FUNCIONALES
+
+### 1.1 Gestión de Clientes
+
+#### RF-1: Crear Cliente
+- **Descripción**: Sistema debe permitir crear clientes de 3 tipos
+- **Tipos**: Regular, Premium, Corporativo
+- **Validaciones requeridas**:
+  - Email único (no duplicado)
+  - Teléfono único (no duplicado)
+  - Email válido (formato)
+  - Teléfono válido (formato internacional)
+  - RUT/DNI válido según país
+- **Resultado**: Cliente se crea y persiste automáticamente
+
+#### RF-2: Listar Clientes
+- **Descripción**: Mostrar lista de clientes con filtros
+- **Filtros disponibles**:
+  - Por estado (activos, inactivos, todos)
+  - Por tipo (regular, premium, corporativo)
+- **Información mostrada**: ID, nombre, email, ciudad, estado, beneficio
+
+#### RF-3: Buscar Cliente
+- **Descripción**: Encontrar cliente específico por criterio
+- **Criterios**: ID, email, teléfono
+- **Resultado**: Cliente encontrado o "No encontrado"
+
+#### RF-4: Actualizar Cliente
+- **Descripción**: Modificar datos de cliente existente
+- **Campos actualizables**: nombre, email, teléfono, dirección, ciudad
+- **Campos específicos**: puntos (Premium), empleados (Corporativo)
+- **Validaciones**: Mismas que en creación
+- **Restricción**: Cliente debe estar activo
+
+#### RF-5: Eliminar Cliente
+- **Descripción**: Eliminar cliente de forma lógica (soft delete)
+- **Implementación**: Marcar como inactivo
+- **Ventaja**: Datos recuperables
+- **Requiere**: Confirmación del usuario
+
+#### RF-6: Reactivar Cliente
+- **Descripción**: Restaurar cliente eliminado
+- **Precondición**: Cliente debe estar inactivo
+- **Requiere**: Confirmación del usuario
+
+#### RF-7: Ver Estadísticas
+- **Descripción**: Mostrar resumen del sistema
+- **Información**:
+  - Total de clientes (activos, inactivos)
+  - Distribución por tipo
+  - Beneficios totales
+
+#### RF-8: Reporte de Beneficios
+- **Descripción**: Generar reporte ordenado por beneficio
+- **Ordenamiento**: Mayor beneficio primero
+- **Información**: Cliente, tipo, beneficio económico
+
+---
+
+## 2. REQUISITOS NO FUNCIONALES
+
+### 2.1 Performance
+- **Carga de datos**: < 1 segundo para 1000 clientes
+- **Búsqueda**: < 100 ms
+- **Actualización**: < 500 ms
+
+### 2.2 Confiabilidad
+- **Disponibilidad**: 99.5%
+- **Recuperación**: Respaldos automáticos cada guardado
+- **Validación**: 100% de datos validados antes de persistir
+
+### 2.3 Seguridad
+- **Validaciones**: Todas las entradas validadas
+- **Excepciones**: Manejo completo de errores
+- **Logging**: Auditoría de todas las operaciones
+
+### 2.4 Usabilidad
+- **Interfaz**: Menú interactivo claro
+- **Mensajes**: Claros y descriptivos
+- **Confirmaciones**: Para operaciones críticas
+
+### 2.5 Mantenibilidad
+- **Código**: POO integral (herencia, polimorfismo, encapsulación, abstracción)
+- **Documentación**: Completa y actualizada
+- **Modularidad**: Separación clara de responsabilidades
+
+---
+
+## 3. REQUISITOS TÉCNICOS
+
+### 3.1 Arquitectura
+
+```
+┌─────────────────────────────────────────┐
+│       INTERFAZ (MenuConsola)            │  Capa de Presentación
+└──────────────┬──────────────────────────┘
+               │
+┌──────────────▼──────────────────────────┐
+│     GESTOR (GestorClientes)             │  Capa de Lógica
+│  - CRUD                                 │
+│  - Validaciones                         │
+│  - Coordinación                         │
+└──────────────┬──────────────────────────┘
+               │
+┌──────────────┼──────────────────────────┐
+│   ┌──────────▼────────┐                 │
+│   │  MODELOS (Cliente)│  Capa de Datos │
+│   │  VALIDADOR        │
+│   │  PERSISTENCIA     │
+│   │  LOGGER           │
+│   │  EXCEPCIONES      │
+│   └───────────────────┘
+│
+│   ┌─────────────────┐
+│   │  clientes.json  │  Almacenamiento
+│   │  respaldos/     │
+│   │  sistema.log    │
+│   └─────────────────┘
+└─────────────────────────────────────────┘
+```
+
+### 3.2 Tecnología
+
+| Aspecto | Especificación |
+|--------|----------------|
+| **Lenguaje** | Python 3.8+ |
+| **Paradigma** | Programación Orientada a Objetos |
+| **Base de Datos** | JSON (archivo local) |
+| **Interfaz** | Consola (CLI) |
+| **Logging** | Sistema de logging integrado |
+| **Validación** | Expresiones regulares (regex) |
+
+### 3.3 Dependencias
+
+- **datetime**: Manejo de fechas
+- **uuid**: Generación de IDs únicos
+- **json**: Serialización/deserialización
+- **re**: Validaciones con regex
+- **pathlib**: Manejo de rutas
+- **logging**: Sistema de logging
+
+### 3.4 Módulos del Sistema
+
+| Módulo | Archivos | Responsabilidad |
+|--------|----------|-----------------|
+| **modelos** | excepciones.py, cliente.py | Define excepciones y clases de cliente |
+| **utils** | validador.py, persistencia.py | Validaciones y persistencia JSON |
+| **gestor** | logger.py, gestor_clientes.py | Logging y CRUD |
+| **interfaz** | menu_consola.py | Interfaz de usuario |
+| **main** | main.py | Punto de entrada |
+
+---
+
+## 4. ESPECIFICACIONES DE DATOS
+
+### 4.1 Cliente Regular
+
+```json
+{
+  "id_cliente": "uuid-completo",
+  "nombre": "Juan Perez",
+  "email": "juan@email.com",
+  "telefono": "+56912345678",
+  "direccion": "Calle A 123",
+  "ciudad": "Santiago",
+  "activo": true,
+  "fecha_registro": "2026-02-16T20:00:00",
+  "tipo_cliente": "ClienteRegular",
+  "nivel_satisfaccion": 4
+}
+```
+
+**Beneficio**: `nivel_satisfaccion * 100` = 400
+
+### 4.2 Cliente Premium
+
+```json
+{
+  "id_cliente": "uuid-completo",
+  "nombre": "Maria Gonzalez",
+  "email": "maria@email.com",
+  "telefono": "+56912345678",
+  "direccion": "Av. Principal 456",
+  "ciudad": "Valparaiso",
+  "activo": true,
+  "fecha_registro": "2026-02-16T20:00:00",
+  "tipo_cliente": "ClientePremium",
+  "descuento": 0.15,
+  "puntos_acumulados": 250,
+  "fecha_vencimiento_premium": "2027-02-16T20:00:00"
+}
+```
+
+**Beneficio**: `(puntos * 10) + (descuento * 1000)` = 4000
+
+### 4.3 Cliente Corporativo
+
+```json
+{
+  "id_cliente": "uuid-completo",
+  "nombre": "Empresa XYZ",
+  "email": "contacto@empresa.com",
+  "telefono": "+56234567890",
+  "direccion": "Av. Corporativa 789",
+  "ciudad": "Santiago",
+  "activo": true,
+  "fecha_registro": "2026-02-16T20:00:00",
+  "tipo_cliente": "ClienteCorporativo",
+  "razon_social": "Empresa XYZ SpA",
+  "rut_empresa": "76.345.678-9",
+  "pais_empresa": "CHILE",
+  "contacto_principal": "Carlos Lopez",
+  "descuento_volumen": 0.10,
+  "numero_empleados": 15
+}
+```
+
+**Beneficio**: `(empleados * 100) + (descuento * 5000)` = 2500
+
+---
+
+## 5. EXCEPCIONES
+
+### 5.1 Jerarquía
+
+```
+Exception
+└── ErrorGestionClientes
+    ├── ClienteNoEncontradoError
+    ├── ClienteInactivoError
+    ├── EmailDuplicadoError
+    ├── TelefonoDuplicadoError
+    ├── ValidacionError
+    │   ├── EmailInvalidoError
+    │   ├── TelefonoInvalidoError
+    │   ├── DireccionInvalidaError
+    │   ├── CiudadInvalidaError
+    │   ├── RUTInvalidoError
+    │   ├── DescuentoInvalidoError
+    │   ├── NombreInvalidoError
+    │   └── NumeroEmpleadosInvalidoError
+    └── OperacionCRUDError
+```
+
+### 5.2 Casos de Uso
+
+| Excepción | Cuándo | Acción |
+|-----------|--------|--------|
+| EmailDuplicadoError | Email ya existe | Rechazar creación |
+| TelefonoDuplicadoError | Teléfono ya existe | Rechazar creación |
+| ClienteNoEncontradoError | ID no existe | Mostrar error |
+| ClienteInactivoError | Cliente está inactivo | Mostrar error |
+| EmailInvalidoError | Formato inválido | Rechazar entrada |
+| TelefonoInvalidoError | Formato inválido | Rechazar entrada |
+
+---
+
+## 6. VALIDACIONES
+
+### 6.1 Email
+- **Formato**: usuario@dominio.ext
+- **Regex**: `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
+- **Validación**: Única (no duplicada)
+
+### 6.2 Teléfono
+- **Formato**: +XX XXXXXXXXX
+- **Código país**: +56 (Chile), +54 (Argentina), +55 (Brasil), etc.
+- **Regex**: `^\+\d{2}\s?\d{1,4}\s?\d{3,4}\s?\d{4}$`
+- **Validación**: Única (no duplicada)
+
+### 6.3 RUT/DNI por País
+
+| País | Formato | Patrón |
+|------|---------|--------|
+| Chile | 12.345.678-9 | `^\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]$` |
+| Argentina | 12345678 | `^\d{7,8}$` |
+| Brasil | 123.456.789-01 | `^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$` |
+| Perú | 12345678 | `^\d{8}$` |
+| Colombia | 1234567 | `^\d{6,10}$` |
+| Uruguay | 1.234.567-8 | `^\d{1}\.?\d{3}\.?\d{3}-?\d{1}$` |
+
+### 6.4 Otros Campos
+
+| Campo | Regla |
+|-------|-------|
+| Nombre | Mínimo 3 caracteres, solo letras y espacios |
+| Dirección | Mínimo 5 caracteres |
+| Ciudad | Mínimo 3 caracteres, solo letras y espacios |
+| Descuento | 0.0 a 1.0 |
+| Satisfacción | 1 a 5 |
+| Empleados | Mayor a 0 |
+
+---
+
+## 7. LOGGING
+
+### 7.1 Niveles
+- **INFO**: Operaciones normales
+- **WARNING**: Advertencias, validaciones fallidas
+- **ERROR**: Errores recuperables
+- **CRITICAL**: Errores críticos
+
+### 7.2 Eventos a Registrar
+
+| Evento | Nivel | Información |
+|--------|-------|-------------|
+| Sistema iniciado | INFO | Fecha/hora |
+| Cliente creado | INFO | ID, tipo, nombre |
+| Cliente actualizado | INFO | ID, campos modificados |
+| Cliente eliminado | INFO | ID, nombre |
+| Búsqueda | INFO | Criterio, resultado |
+| Validación fallida | WARNING | Campo, valor, razón |
+| Error persistencia | ERROR | Operación, detalle |
+| Sistema cerrado | INFO | Fecha/hora |
+
+---
+
+## 8. INTERFAZ DE USUARIO
+
+### 8.1 Menú Principal
+```
+1. Crear cliente
+2. Listar clientes
+3. Buscar cliente
+4. Actualizar cliente
+5. Eliminar cliente
+6. Reactivar cliente
+7. Ver estadisticas
+8. Reporte de beneficios
+9. Ver detalles de cliente
+0. Salir
+```
+
+### 8.2 Flujo Crear Cliente
+
+```
+Seleccionar tipo (Regular/Premium/Corporativo)
+  ↓
+Ingresar datos básicos (nombre, email, teléfono, etc.)
+  ↓
+Validar duplicados y formato
+  ↓
+Ingresar datos específicos del tipo
+  ↓
+Crear cliente
+  ↓
+Guardar en JSON
+  ↓
+Registrar en log
+  ↓
+Mostrar confirmación
+```
+
+---
+
+## 9. PERSISTENCIA
+
+### 9.1 Estructura JSON
+
+```
+data/
+├── clientes.json          (Archivo principal)
+└── respaldos/
+    ├── clientes_20260216_200000.json
+    ├── clientes_20260216_201500.json
+    └── clientes_20260216_203000.json
+```
+
+### 9.2 Operaciones
+
+| Operación | Cuándo | Acción |
+|-----------|--------|--------|
+| Guardar | Después de crear/actualizar/eliminar | Escribe en JSON + respaldo |
+| Cargar | Al iniciar sistema | Lee desde JSON |
+| Respaldo | Cada guardado | Copia a carpeta respaldos |
+
+---
+
+## 10. CASOS DE USO
+
+### 10.1 Crear Cliente Premium
+
+```
+Actor: Usuario
+Precondición: Sistema iniciado
+Pasos:
+  1. Usuario selecciona opción 1
+  2. Sistema pide tipo de cliente
+  3. Usuario selecciona "Premium"
+  4. Usuario ingresa: nombre, email, teléfono, dirección, ciudad
+  5. Usuario ingresa: descuento, puntos
+  6. Sistema valida email/teléfono
+  7. Sistema crea cliente
+  8. Sistema guarda en JSON
+  9. Sistema registra en log
+  10. Sistema muestra confirmación
+Postcondición: Cliente creado y persistido
+```
+
+### 10.2 Actualizar Cliente
+
+```
+Actor: Usuario
+Precondición: Cliente existe y está activo
+Pasos:
+  1. Usuario selecciona opción 4
+  2. Usuario ingresa ID del cliente
+  3. Sistema busca cliente
+  4. Sistema muestra datos actuales
+  5. Usuario ingresa nuevos datos (dejar vacío para mantener)
+  6. Sistema valida cambios
+  7. Sistema actualiza cliente
+  8. Sistema guarda en JSON
+  9. Sistema registra en log
+  10. Sistema muestra cliente actualizado
+Postcondición: Cliente actualizado
+```
+
+---
+
+## 11. PRUEBAS
+
+### 11.1 Pruebas Unitarias Sugeridas
+
+- Crear cliente de cada tipo
+- Validar email duplicado
+- Validar teléfono duplicado
+- Buscar por ID, email, teléfono
+- Actualizar cada tipo de cliente
+- Eliminar y reactivar
+- Calcular beneficio de cada tipo
+- Generar reporte
+
+### 11.2 Criterios de Aceptación
+
+- Todas las operaciones CRUD funcionan
+- Validaciones previenen datos inválidos
+- No hay duplicados en email/teléfono
+- Datos persisten correctamente en JSON
+- Logging registra todas las operaciones
+- Excepciones se manejan correctamente
+
+---
+
+## 12. RESTRICCIONES
+
+### 12.1 Técnicas
+- Solo Python 3.8+
+- Sin acceso a internet
+- JSON como única persistencia
+- Consola como interfaz
+
+### 12.2 Funcionales
+- No eliminar definitivamente (solo soft delete)
+- No modificar ID de cliente
+- No permitir email/teléfono duplicados
+- No actualizar cliente inactivo
+
+### 12.3 De Datos
+- UUID completo para IDs (36 caracteres)
+- Email máximo 255 caracteres
+- Nombre máximo 100 caracteres
+- Máximo clientes: limitado por RAM
+
+---
+
+## 13. VERSIONES FUTURAS
+
+- Autenticación de usuarios
+- Base de datos relacional (MySQL/PostgreSQL)
+- Interfaz gráfica (GUI)
+- API REST
+- Reportes en PDF/Excel
+- Importación/exportación CSV
+
+---
+
+## 14. GLOSARIO
+
+| Término | Definición |
+|---------|-----------|
+| **CRUD** | Create, Read, Update, Delete |
+| **Soft Delete** | Marcar registro como inactivo sin eliminarlo |
+| **UUID** | Identificador único universal |
+| **JSON** | Formato de almacenamiento de datos |
+| **POO** | Programación Orientada a Objetos |
+| **Herencia** | Mecanismo para reutilizar código entre clases |
+| **Polimorfismo** | Mismos métodos, diferentes implementaciones |
+| **Encapsulación** | Ocultamiento de datos internos |
+| **Abstracción** | Simplificación de complejidad |
+
+---
+
+**Documento Finalizado**

@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "ultima_actualizacion": "2026-02-16T21:46:40.880719",
+    "total_clientes": 1
+  },
+  "clientes": [
+    {
+      "id_cliente": "b985e43b-4963-4e23-a8d4-22359aae8a9e",
+      "tipo_cliente": "ClientePremium",
+      "nombre": "Maria Gonzalez",
+      "email": "maria@gmail.com",
+      "telefono": "+56 9 8765 4321",
+      "direccion": "Av. Providencia 123, Depto 45",
+      "ciudad": "Santiago",
+      "fecha_registro": "2026-02-16T21:46:40.867385",
+      "activo": true,
+      "descuento": 0.1,
+      "fecha_vencimiento_premium": "2027-02-16T21:46:40.867422",
+      "puntos_acumulados": 0
+    }
+  ]
+}

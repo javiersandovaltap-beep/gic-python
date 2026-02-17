@@ -1,0 +1,273 @@
+@startuml DIAGRAMA_CLASES_GIC
+
+title Diagrama de Clases - Sistema Gestor Inteligente de Clientes (GIC)
+
+' ============================================
+' EXCEPCIONES
+' ============================================
+
+class ErrorGestionClientes {
+    {abstract} +__init__(mensaje: str)
+}
+
+class ClienteNoEncontradoError {
+    +__init__(id_cliente: str)
+}
+
+class ClienteInactivoError {
+    +__init__(id_cliente: str)
+}
+
+class EmailDuplicadoError {
+    +__init__(email: str)
+}
+
+class TelefonoDuplicadoError {
+    +__init__(telefono: str)
+}
+
+class ValidacionError {
+    {abstract} +__init__(mensaje: str)
+}
+
+class EmailInvalidoError {
+    +__init__(email: str)
+}
+
+class TelefonoInvalidoError {
+    +__init__(telefono: str)
+}
+
+class OperacionCRUDError {
+    +__init__(operacion: str, detalle: str)
+}
+
+' ============================================
+' MODELOS - CLIENTES
+' ============================================
+
+abstract class Cliente {
+    {field} -id_cliente: str
+    {field} -nombre: str
+    {field} -email: str
+    {field} -telefono: str
+    {field} -direccion: str
+    {field} -ciudad: str
+    {field} -activo: bool
+    {field} -fecha_registro: datetime
+    {field} -tipo_cliente: str
+    --
+    {method} +__init__(nombre, email, telefono, direccion, ciudad)
+    {abstract} +calcular_beneficio(): float
+    {abstract} +__str__(): str
+    {method} +to_dict(): dict
+    {method} +obtener_id(): str
+}
+
+class ClienteRegular {
+    {field} -nivel_satisfaccion: int
+    --
+    {method} +__init__(nombre, email, telefono, direccion, ciudad, nivel_satisfaccion)
+    {method} +calcular_beneficio(): float
+    {method} +__str__(): str
+}
+
+class ClientePremium {
+    {field} -descuento: float
+    {field} -puntos_acumulados: int
+    {field} -fecha_vencimiento_premium: datetime
+    --
+    {method} +__init__(nombre, email, telefono, direccion, ciudad, descuento, puntos)
+    {method} +calcular_beneficio(): float
+    {method} +__str__(): str
+    {method} +es_vigente(): bool
+}
+
+class ClienteCorporativo {
+    {field} -razon_social: str
+    {field} -rut_empresa: str
+    {field} -pais_empresa: str
+    {field} -contacto_principal: str
+    {field} -descuento_volumen: float
+    {field} -numero_empleados: int
+    --
+    {method} +__init__(nombre, email, telefono, direccion, ciudad, ...)
+    {method} +calcular_beneficio(): float
+    {method} +__str__(): str
+}
+
+' ============================================
+' VALIDADOR
+' ============================================
+
+class ValidadorDatos {
+    {field} {static} -REGEX_EMAIL: str
+    {field} {static} -REGEX_TELEFONO: str
+    {field} {static} -REGEX_RUT_CHILE: str
+    {field} {static} -REGEX_DNI_ARGENTINA: str
+    {field} {static} -REGEX_CIUDAD: str
+    --
+    {method} {static} +validar_nombre(nombre): str
+    {method} {static} +validar_email(email): str
+    {method} {static} +validar_telefono(telefono): str
+    {method} {static} +validar_direccion(direccion): str
+    {method} {static} +validar_ciudad(ciudad): str
+    {method} {static} +validar_rut_chile(rut): str
+    {method} {static} +validar_descuento(descuento): float
+}
+
+' ============================================
+' PERSISTENCIA
+' ============================================
+
+class PersistenciaJSON {
+    {field} -ruta_archivo: str
+    {field} -ruta_respaldos: str
+    --
+    {method} +__init__(ruta_archivo: str)
+    {method} +guardar(datos: list): bool
+    {method} +cargar_clientes(): list
+    {method} +crear_respaldo(): str
+    {method} +limpiar_respaldos_antiguos(dias: int): int
+}
+
+' ============================================
+' LOGGER
+' ============================================
+
+class LoggerSistema {
+    {field} -nombre_logger: str
+    {field} -ruta_log: str
+    {field} -nivel_log: int
+    {field} -logger: logging.Logger
+    --
+    {method} +__init__(nombre_logger, ruta_log, nivel_log)
+    {method} +info(mensaje: str): void
+    {method} +warning(mensaje: str): void
+    {method} +error(mensaje: str, excepcion: Exception): void
+    {method} +log_cliente_creado(id, tipo, nombre): void
+    {method} +log_cliente_actualizado(id, campos): void
+    {method} +log_cliente_eliminado(id, nombre): void
+    {method} +limpiar_logs_antiguos(dias): int
+    {method} +obtener_estadisticas_log(): dict
+}
+
+' ============================================
+' GESTOR PRINCIPAL
+' ============================================
+
+class GestorClientes {
+    {field} -clientes: List[Cliente]
+    {field} -persistencia: PersistenciaJSON
+    {field} -logger: LoggerSistema
+    --
+    {method} +__init__(ruta_datos: str, ruta_log: str)
+    {method} +crear_cliente(tipo: str, **datos): Cliente
+    {method} +listar_clientes(activos, tipo): List[Cliente]
+    {method} +buscar_cliente(criterio, valor): Cliente
+    {method} +obtener_cliente_por_id(id): Cliente
+    {method} +actualizar_cliente(id, **cambios): Cliente
+    {method} +eliminar_cliente(id): bool
+    {method} +reactivar_cliente(id): bool
+    {method} +obtener_estadisticas(): dict
+    {method} +generar_reporte_beneficios(): list
+    {method} +cerrar(): void
+    {method} -_cargar_clientes_desde_json(): void
+    {method} -_guardar_clientes_a_json(): bool
+    {method} -_email_existe(email): bool
+    {method} -_telefono_existe(telefono): bool
+}
+
+' ============================================
+' INTERFAZ
+' ============================================
+
+class MenuConsola {
+    {field} -gestor: GestorClientes
+    --
+    {method} +__init__()
+    {method} +mostrar_menu_principal(): void
+    {method} +menu_crear_cliente(): void
+    {method} +menu_listar_clientes(): void
+    {method} +menu_buscar_cliente(): void
+    {method} +menu_actualizar_cliente(): void
+    {method} +menu_eliminar_cliente(): void
+    {method} +menu_reactivar_cliente(): void
+    {method} +menu_ver_estadisticas(): void
+    {method} +menu_reporte_beneficios(): void
+    {method} +menu_ver_detalles(): void
+    {method} +salir(): void
+    {method} -_crear_cliente_regular(): void
+    {method} -_crear_cliente_premium(): void
+    {method} -_crear_cliente_corporativo(): void
+}
+
+' ============================================
+' RELACIONES - HERENCIA
+' ============================================
+
+Cliente <|-- ClienteRegular : hereda
+Cliente <|-- ClientePremium : hereda
+Cliente <|-- ClienteCorporativo : hereda
+
+' ============================================
+' RELACIONES - EXCEPCIONES
+' ============================================
+
+ErrorGestionClientes <|-- ClienteNoEncontradoError : hereda
+ErrorGestionClientes <|-- ClienteInactivoError : hereda
+ErrorGestionClientes <|-- EmailDuplicadoError : hereda
+ErrorGestionClientes <|-- TelefonoDuplicadoError : hereda
+ErrorGestionClientes <|-- ValidacionError : hereda
+ErrorGestionClientes <|-- OperacionCRUDError : hereda
+
+ValidacionError <|-- EmailInvalidoError : hereda
+ValidacionError <|-- TelefonoInvalidoError : hereda
+
+' ============================================
+' RELACIONES - COMPOSICIÓN
+' ============================================
+
+GestorClientes "1" *-- "0..*" Cliente : gestiona
+GestorClientes "1" o-- "1" PersistenciaJSON : usa
+GestorClientes "1" o-- "1" LoggerSistema : usa
+
+MenuConsola "1" o-- "1" GestorClientes : usa
+
+' ============================================
+' RELACIONES - DEPENDENCIAS
+' ============================================
+
+Cliente ..> ValidadorDatos : valida con
+GestorClientes ..> ValidadorDatos : valida con
+MenuConsola ..> ValidadorDatos : usa
+
+GestorClientes ..> ClienteNoEncontradoError : lanza
+GestorClientes ..> ClienteInactivoError : lanza
+GestorClientes ..> EmailDuplicadoError : lanza
+GestorClientes ..> TelefonoDuplicadoError : lanza
+GestorClientes ..> ValidacionError : lanza
+
+PersistenciaJSON ..> OperacionCRUDError : lanza
+
+' ============================================
+' NOTA
+' ============================================
+
+note right of Cliente
+    Clase abstracta con método
+    calcular_beneficio() polimórfico
+    para cada subclase
+end note
+
+note right of GestorClientes
+    Orquesta todas las operaciones CRUD
+    Coordina: validación, persistencia, logging
+end note
+
+note right of MenuConsola
+    Interfaz de usuario con 9 opciones
+    Menú interactivo en consola
+end note
+
+@enduml
