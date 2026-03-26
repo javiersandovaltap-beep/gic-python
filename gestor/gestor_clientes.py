@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from modelos.cliente import Cliente, ClienteRegular, ClientePremium, ClienteCorporativo
+from modelos import Cliente, ClienteRegular, ClientePremium, ClienteCorporativo
 from utils.validador import ValidadorDatos
 from utils.persistencia import PersistenciaJSON
 from gestor.logger import LoggerSistema
@@ -15,7 +15,8 @@ from modelos.excepciones import (
     ClienteInactivoError,
     EmailDuplicadoError,
     TelefonoDuplicadoError,
-    OperacionCRUDError
+    OperacionCRUDError,
+    ValidacionError
 )
 
 class GestorClientes:
@@ -168,7 +169,11 @@ class GestorClientes:
         
         return resultado
     
-    
+    def buscar_por_nombre(self, nombre: str) -> list:
+        """Búsqueda parcial por nombre, case-insensitive. Incluye inactivos."""
+        nombre_lower = nombre.lower().strip()
+        return [c for c in self.clientes if nombre_lower in c.nombre.lower()]
+
     def obtener_cliente_por_id(self, id_cliente: str) -> Cliente:
         cliente = self.buscar_cliente('id', id_cliente, incluir_inactivos=True)
         
@@ -203,9 +208,20 @@ class GestorClientes:
             
             if 'ciudad' in cambios:
                 cambios['ciudad'] = ValidadorDatos.validar_ciudad(cambios['ciudad'])
-            
+            if 'nivel_satisfaccion' in cambios:
+                nivel = cambios['nivel_satisfaccion']
+                if not (1 <= nivel <= 5):
+                    raise ValidacionError(
+                        f"Nivel de satisfaccion debe estar entre 1 y 5, recibido: {nivel}"
+                    )
+
             campos_modificados = []
             for campo, valor in cambios.items():
+                if campo == 'nivel_satisfaccion' and not (1 <= int(valor) <= 5):
+                    raise ValidacionError(
+                        f"Nivel de satisfacción debe estar entre 1 y 5, recibido: {valor}"
+                    )
+
                 if hasattr(cliente, campo):
                     setattr(cliente, campo, valor)
                     campos_modificados.append(campo)
@@ -297,7 +313,18 @@ class GestorClientes:
                 'premium': len([c for c in clientes_activos if isinstance(c, ClientePremium)]),
                 'corporativo': len([c for c in clientes_activos if isinstance(c, ClienteCorporativo)])
             },
-            'beneficios_totales': sum(c.calcular_beneficio() for c in clientes_activos)
+            'beneficios_totales': sum(c.calcular_beneficio() for c in clientes_activos),
+            'beneficio_promedio': round(
+                    sum(c.calcular_beneficio() for c in clientes_activos) / len(clientes_activos), 
+            2
+                ) if clientes_activos else 0.0,
+                'cliente_top': max(
+                    clientes_activos, key=lambda c: c.calcular_beneficio()
+                ).nombre if clientes_activos else "N/A",
+                'ciudad_mas_comun': max(
+                    set(c.ciudad for c in clientes_activos),
+                    key=lambda ciudad: sum(1 for c in clientes_activos if c.ciudad == ciudad)
+                ) if clientes_activos else "N/A"
         }
         
         return estadisticas
@@ -318,6 +345,34 @@ class GestorClientes:
         reporte.sort(key=lambda x: x['beneficio'], reverse=True)
         
         return reporte
+    def exportar_csv(self, ruta: str = "data/clientes_export.csv") -> str:
+        """Exporta todos los clientes activos a un archivo CSV."""
+        import csv
+        from pathlib import Path
+
+        Path(ruta).parent.mkdir(parents=True, exist_ok=True)
+        clientes_activos = [c for c in self.clientes if c.activo]
+
+        campos = ['id_cliente', 'tipo_cliente', 'nombre', 'email',
+                  'telefono', 'ciudad', 'fecha_registro', 'beneficio']
+
+        with open(ruta, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=campos)
+            writer.writeheader()
+            for c in clientes_activos:
+                writer.writerow({
+                    'id_cliente':     c.id_cliente,
+                    'tipo_cliente':   c.tipo_cliente,
+                    'nombre':         c.nombre,
+                    'email':          c.email,
+                    'telefono':       c.telefono,
+                    'ciudad':         c.ciudad,
+                    'fecha_registro': c.fecha_registro.strftime('%Y-%m-%d'),
+                    'beneficio':      round(c.calcular_beneficio(), 2)
+                })
+
+        self.logger.info(f"CSV exportado: {ruta} ({len(clientes_activos)} clientes)")
+        return ruta
 
     # CIERRE DEL SISTEMA
     
@@ -328,96 +383,4 @@ class GestorClientes:
         except Exception as e:
             self.logger.error("Error al cerrar el sistema", e)
 
-# FUNCION DE PRUEBA
-
-def test_gestor():
-    """
-    Funcion de prueba para verificar el GestorClientes.
-    Ejecutar: python gestor/gestor_clientes.py
-    """
-    print("=" * 70)
-    print("PRUEBA DEL GESTOR DE CLIENTES - GIC")
-    print("=" * 70)
-    
-    # Crear gestor
-    gestor = GestorClientes(
-        ruta_datos="data/clientes_test.json",
-        ruta_log="logs/test_gestor.log"
-    )
-    
-    print("\n1. CREAR CLIENTES")
-    print("-" * 70)
-    try:
-        # Cliente Regular
-        cliente1 = gestor.crear_cliente(
-            'regular',
-            nombre="Ana Martinez",
-            email="ana@test.com",
-            telefono="+56912345678",
-            direccion="Calle Falsa 123",
-            ciudad="Santiago"
-        )
-        print(f"Cliente Regular creado: {cliente1.nombre}")
-        
-        # Cliente Premium
-        cliente2 = gestor.crear_cliente(
-            'premium',
-            nombre="Carlos Lopez",
-            email="carlos@test.com",
-            telefono="+56987654321",
-            direccion="Av. Principal 456",
-            ciudad="Valparaiso",
-            descuento=0.20,
-            puntos_acumulados=500
-        )
-        print(f"Cliente Premium creado: {cliente2.nombre}")
-        
-    except Exception as e:
-        print(f"Error: {e}")
-    
-    print("\n2. LISTAR CLIENTES")
-    print("-" * 70)
-    clientes = gestor.listar_clientes(activos=True)
-    print(f"Total clientes activos: {len(clientes)}")
-    for c in clientes:
-        print(f"  - {c.nombre} ({c.tipo_cliente})")
-    
-    print("\n3. BUSCAR CLIENTE")
-    print("-" * 70)
-    cliente = gestor.buscar_cliente('email', 'ana@test.com')
-    if cliente:
-        print(f"Cliente encontrado: {cliente.nombre}")
-    
-    print("\n4. ACTUALIZAR CLIENTE")
-    print("-" * 70)
-    try:
-        gestor.actualizar_cliente(
-            cliente1.id_cliente,
-            ciudad="Concepcion",
-            direccion="Nueva Direccion 789"
-        )
-        print(f"Cliente actualizado: {cliente1.ciudad}")
-    except Exception as e:
-        print(f"Error: {e}")
-    
-    print("\n5. ESTADISTICAS")
-    print("-" * 70)
-    stats = gestor.obtener_estadisticas()
-    print(f"Total clientes: {stats['total_clientes']}")
-    print(f"Activos: {stats['clientes_activos']}")
-    print(f"Por tipo: Regular={stats['por_tipo']['regular']}, Premium={stats['por_tipo']['premium']}")
-    print(f"Beneficios totales: ${stats['beneficios_totales']:,.2f}")
-    
-    print("\n6. CERRAR GESTOR")
-    print("-" * 70)
-    gestor.cerrar()
-    print("Gestor cerrado correctamente")
-    
-    print("\n" + "=" * 70)
-    print("Pruebas completadas")
-    print("=" * 70)
-
-
-if __name__ == "__main__":
-    test_gestor()
 

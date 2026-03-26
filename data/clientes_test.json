@@ -1,0 +1,21 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "ultima_actualizacion": "2026-03-26T00:38:15.079858",
+    "total_clientes": 2
+  },
+  "clientes": [
+    {
+      "id_cliente": "test-001",
+      "nombre": "Cliente Prueba 1",
+      "email": "cliente1@test.com",
+      "tipo_cliente": "ClienteRegular"
+    },
+    {
+      "id_cliente": "test-002",
+      "nombre": "Cliente Prueba 2",
+      "email": "cliente2@test.com",
+      "tipo_cliente": "ClientePremium"
+    }
+  ]
+}

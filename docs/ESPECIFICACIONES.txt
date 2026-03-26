@@ -31,7 +31,7 @@
 
 #### RF-3: Buscar Cliente
 - **Descripción**: Encontrar cliente específico por criterio
-- **Criterios**: ID, email, teléfono
+- **Criterios**: ID, email, teléfono, nombre (búsqueda parcial, case-insensitive)
 - **Resultado**: Cliente encontrado o "No encontrado"
 
 #### RF-4: Actualizar Cliente
@@ -58,6 +58,11 @@
   - Total de clientes (activos, inactivos)
   - Distribución por tipo
   - Beneficios totales
+  - Beneficio promedio
+  - Cliente con mayor beneficio
+  - Ciudad más común
+  - Exportación a CSV
+
 
 #### RF-8: Reporte de Beneficios
 - **Descripción**: Generar reporte ordenado por beneficio
@@ -152,7 +157,8 @@
 
 | Módulo | Archivos | Responsabilidad |
 |--------|----------|-----------------|
-| **modelos** | excepciones.py, cliente.py | Define excepciones y clases de cliente |
+| **modelos** | excepciones.py, cliente_base.py, cliente_regular.py, cliente_premium.py, cliente_corporativo.py |
+  Define excepciones y clases de cliente (modularizado) |
 | **utils** | validador.py, persistencia.py | Validaciones y persistencia JSON |
 | **gestor** | logger.py, gestor_clientes.py | Logging y CRUD |
 | **interfaz** | menu_consola.py | Interfaz de usuario |
@@ -200,7 +206,8 @@
 }
 ```
 
-**Beneficio**: `(puntos * 10) + (descuento * 1000)` = 4000
+**Beneficio**: `(puntos × 10) + (descuento × 1000)` = (250×10) + (0.15×1000) = 2500 + 150 = **$2.650**
+
 
 ### 4.3 Cliente Corporativo
 
@@ -224,7 +231,8 @@
 }
 ```
 
-**Beneficio**: `(empleados * 100) + (descuento * 5000)` = 2500
+**Beneficio**: `empleados × $1000 × descuento_volumen` = 15 × 1000 × 0.10 = **$1.500**
+
 
 ---
 
@@ -274,7 +282,9 @@ Exception
 ### 6.2 Teléfono
 - **Formato**: +XX XXXXXXXXX
 - **Código país**: +56 (Chile), +54 (Argentina), +55 (Brasil), etc.
-- **Regex**: `^\+\d{2}\s?\d{1,4}\s?\d{3,4}\s?\d{4}$`
+- **Regex**: `^\\+\\d{1,3}[\\s]?\\d{1,4}[\\s]?\\d{2,4}[\\s]?\\d{3,4}[\\s]?\\d{0,4}$`
+- **Soporta**: formatos de 4 a 5 grupos (Chile, Argentina, Brasil, Perú, Colombia, Uruguay)
+
 - **Validación**: Única (no duplicada)
 
 ### 6.3 RUT/DNI por País

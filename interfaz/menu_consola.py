@@ -11,7 +11,7 @@ from typing import Optional
 sys.path.append(str(Path(__file__).parent.parent))
 
 from gestor.gestor_clientes import GestorClientes
-from modelos.cliente import ClienteRegular, ClientePremium, ClienteCorporativo
+from modelos import ClienteRegular, ClientePremium, ClienteCorporativo
 from modelos.excepciones import (
     ErrorGestionClientes,
     ClienteNoEncontradoError,
@@ -309,14 +309,15 @@ class MenuConsola:
         print("\n" + "-" * 70)
         print("BUSCAR CLIENTE")
         print("-" * 70)
-        
+
         print("\nBuscar por:")
         print("1. ID")
         print("2. Email")
         print("3. Telefono")
-        
-        criterio_opcion = input("\nSeleccione criterio (1-3): ").strip()
-        
+        print("4. Nombre (búsqueda parcial)")
+
+        criterio_opcion = input("\nSeleccione criterio (1-4): ").strip()
+
         if criterio_opcion == '1':
             criterio = 'id'
             valor = input("\nIngrese el ID: ").strip()
@@ -326,12 +327,25 @@ class MenuConsola:
         elif criterio_opcion == '3':
             criterio = 'telefono'
             valor = input("\nIngrese el telefono: ").strip()
+        elif criterio_opcion == '4':
+            valor = input("\nIngrese el nombre (parcial): ").strip()
+            clientes = self.gestor.buscar_por_nombre(valor)
+            if clientes:
+                print("\n" + "=" * 70)
+                print(f"CLIENTES ENCONTRADOS: {len(clientes)}")
+                print("=" * 70)
+                for c in clientes:
+                    estado = "Activo" if c.activo else "Inactivo"
+                    print(f"\n  {c.nombre} | {c.tipo_cliente} | {c.email} | {estado}")
+            else:
+                print("\nNo se encontraron clientes con ese nombre.")
+            return
         else:
             print("\nCriterio invalido.")
             return
-        
+
         cliente = self.gestor.buscar_cliente(criterio, valor, incluir_inactivos=True)
-        
+
         if cliente:
             print("\n" + "=" * 70)
             print("CLIENTE ENCONTRADO")
@@ -339,6 +353,8 @@ class MenuConsola:
             print(cliente)
         else:
             print("\nCliente no encontrado.")
+
+
     
     
     def menu_actualizar_cliente(self) -> None:
@@ -388,6 +404,11 @@ class MenuConsola:
                 if nuevos_empleados:
                     cambios['numero_empleados'] = int(nuevos_empleados)
             
+            elif isinstance(cliente, ClienteRegular):
+                nuevo_nivel = input(f"Nivel satisfaccion (1-5) [{cliente.nivel_satisfaccion}]: ").strip()
+                if nuevo_nivel:
+                    cambios['nivel_satisfaccion'] = int(nuevo_nivel)
+
             if not cambios:
                 print("\nNo se realizaron cambios.")
                 return
@@ -495,7 +516,17 @@ class MenuConsola:
         print("\n" + "=" * 70)
         print("BENEFICIOS")
         print("=" * 70)
-        print(f"Beneficios totales:       ${stats['beneficios_totales']:,.2f}")
+        print(f"Beneficios totales:    ${stats['beneficios_totales']:,.2f}")
+        print(f"Beneficio promedio:    ${stats['beneficio_promedio']:,.2f}")
+        print(f"Cliente top beneficio:  {stats['cliente_top']}")
+        print(f"Ciudad más común:       {stats['ciudad_mas_comun']}")
+
+        print("\n" + "=" * 70)
+        exportar = input("¿Exportar listado a CSV? (S/N): ").strip().upper()
+        if exportar == 'S':
+            ruta = self.gestor.exportar_csv()
+            print(f"\n✅ CSV exportado en: {ruta}")
+
     
     
     def menu_reporte_beneficios(self) -> None:

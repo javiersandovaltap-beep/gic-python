@@ -61,7 +61,10 @@ abstract class Cliente {
     {abstract} +calcular_beneficio(): float
     {abstract} +__str__(): str
     {method} +to_dict(): dict
-    {method} +obtener_id(): str
+    {method} +from_dict(data: dict): Cliente
+    {method} +__eq__(other): bool
+    {method} +__hash__(): int
+    {method} +__repr__(): str
 }
 
 class ClienteRegular {
@@ -69,6 +72,8 @@ class ClienteRegular {
     --
     {method} +__init__(nombre, email, telefono, direccion, ciudad, nivel_satisfaccion)
     {method} +calcular_beneficio(): float
+    note: nivel_satisfaccion × $100
+    {method} +to_dict(): dict
     {method} +__str__(): str
 }
 
@@ -79,8 +84,13 @@ class ClientePremium {
     --
     {method} +__init__(nombre, email, telefono, direccion, ciudad, descuento, puntos)
     {method} +calcular_beneficio(): float
+    note: (puntos × 10) + (descuento × 1000)
+    {method} +agregar_puntos(puntos: int): void
+    {method} +canjear_puntos(puntos: int): float
+    {method} +renovar_premium(dias: int): void
+    {method} +esta_vigente(): bool
+    {method} +to_dict(): dict
     {method} +__str__(): str
-    {method} +es_vigente(): bool
 }
 
 class ClienteCorporativo {
@@ -93,6 +103,9 @@ class ClienteCorporativo {
     --
     {method} +__init__(nombre, email, telefono, direccion, ciudad, ...)
     {method} +calcular_beneficio(): float
+    note: empleados × $1000 × descuento_volumen
+    {method} +aplicar_descuento_volumen(monto: float): float
+    {method} +to_dict(): dict
     {method} +__str__(): str
 }
 
@@ -112,8 +125,10 @@ class ValidadorDatos {
     {method} {static} +validar_telefono(telefono): str
     {method} {static} +validar_direccion(direccion): str
     {method} {static} +validar_ciudad(ciudad): str
-    {method} {static} +validar_rut_chile(rut): str
+    {method} {static} +validar_rut_dni(documento, pais): str
     {method} {static} +validar_descuento(descuento): float
+    {method} {static} +validar_puntos(puntos): int
+    {method} {static} +validar_numero_empleados(n): int
 }
 
 ' ============================================
@@ -128,7 +143,10 @@ class PersistenciaJSON {
     {method} +guardar(datos: list): bool
     {method} +cargar_clientes(): list
     {method} +crear_respaldo(): str
-    {method} +limpiar_respaldos_antiguos(dias: int): int
+    {method} +listar_respaldos(): list
+    {method} +validar_archivo(): bool
+    {method} +obtener_estadisticas_archivo(): dict
+    {method} +limpiar_respaldos_antiguos(max: int): int
 }
 
 ' ============================================
@@ -145,10 +163,15 @@ class LoggerSistema {
     {method} +info(mensaje: str): void
     {method} +warning(mensaje: str): void
     {method} +error(mensaje: str, excepcion: Exception): void
+    {method} +log_inicio_sistema(): void
+    {method} +log_cierre_sistema(): void
     {method} +log_cliente_creado(id, tipo, nombre): void
     {method} +log_cliente_actualizado(id, campos): void
     {method} +log_cliente_eliminado(id, nombre): void
-    {method} +limpiar_logs_antiguos(dias): int
+    {method} +log_busqueda(criterio, valor, encontrado): void
+    {method} +log_error_validacion(campo, valor, motivo): void
+    {method} +log_error_persistencia(operacion, detalle): void
+    {method} +ver_ultimas_lineas(n: int): list
     {method} +obtener_estadisticas_log(): dict
 }
 
@@ -165,12 +188,14 @@ class GestorClientes {
     {method} +crear_cliente(tipo: str, **datos): Cliente
     {method} +listar_clientes(activos, tipo): List[Cliente]
     {method} +buscar_cliente(criterio, valor): Cliente
+    {method} +buscar_por_nombre(nombre: str): List[Cliente]
     {method} +obtener_cliente_por_id(id): Cliente
     {method} +actualizar_cliente(id, **cambios): Cliente
     {method} +eliminar_cliente(id): bool
     {method} +reactivar_cliente(id): bool
     {method} +obtener_estadisticas(): dict
     {method} +generar_reporte_beneficios(): list
+    {method} +exportar_csv(ruta: str): str
     {method} +cerrar(): void
     {method} -_cargar_clientes_desde_json(): void
     {method} -_guardar_clientes_a_json(): bool
@@ -240,7 +265,6 @@ MenuConsola "1" o-- "1" GestorClientes : usa
 
 Cliente ..> ValidadorDatos : valida con
 GestorClientes ..> ValidadorDatos : valida con
-MenuConsola ..> ValidadorDatos : usa
 
 GestorClientes ..> ClienteNoEncontradoError : lanza
 GestorClientes ..> ClienteInactivoError : lanza
@@ -251,23 +275,35 @@ GestorClientes ..> ValidacionError : lanza
 PersistenciaJSON ..> OperacionCRUDError : lanza
 
 ' ============================================
-' NOTA
+' NOTAS
 ' ============================================
 
 note right of Cliente
-    Clase abstracta con método
-    calcular_beneficio() polimórfico
-    para cada subclase
+    Clase abstracta en cliente_base.py
+    calcular_beneficio() polimórfico:
+    - Regular:      nivel × $100
+    - Premium:      puntos×10 + desc×1000
+    - Corporativo:  empleados×$1000×desc
 end note
 
 note right of GestorClientes
     Orquesta todas las operaciones CRUD
     Coordina: validación, persistencia, logging
+    Nuevos: buscar_por_nombre(), exportar_csv()
+    Estadísticas: beneficio_promedio, cliente_top,
+    ciudad_mas_comun
 end note
 
 note right of MenuConsola
-    Interfaz de usuario con 9 opciones
-    Menú interactivo en consola
+    Interfaz consola con 9 opciones de menú
+    Búsqueda por: ID, email, teléfono, nombre parcial
+    Exportación CSV desde estadísticas
+end note
+
+note top of ValidadorDatos
+    Soporta teléfonos de 6 países sudamericanos
+    RUT/DNI multi-país: Chile, Argentina,
+    Brasil, Perú, Colombia, Uruguay
 end note
 
 @enduml

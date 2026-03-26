@@ -14,10 +14,11 @@ La herencia permite que una clase (subclase) herede atributos y métodos de otra
 ### Implementación en GIC
 
 ```
-Cliente (Clase Base Abstracta)
-├── ClienteRegular
-├── ClientePremium
-└── ClienteCorporativo
+modelos/
+├── cliente_base.py       → Cliente (Clase Base Abstracta)
+├── cliente_regular.py    → ClienteRegular
+├── cliente_premium.py    → ClientePremium
+└── cliente_corporativo.py→ ClienteCorporativo
 ```
 
 ### Código Base (Cliente)
@@ -102,9 +103,10 @@ class ClienteCorporativo(Cliente):
         self.descuento_volumen = descuento_volumen
         self.numero_empleados = numero_empleados
     
-    def calcular_beneficio(self):
-        """Beneficio = empleados * 100 + descuento * 5000."""
-        return (self.numero_empleados * 100) + (self.descuento_volumen * 5000)
+def calcular_beneficio(self):
+    """Beneficio = numero_empleados × $1000 × descuento_volumen."""
+    return float(self.numero_empleados * 1000 * self.descuento_volumen)
+
 ```
 
 ### Beneficios de la Herencia en GIC
@@ -144,11 +146,10 @@ print(cliente_premium.calcular_beneficio())  # 5000 (500 * 10 + 0.20 * 1000)
 
 ### Tabla de Polimorfismo en GIC
 
-| Tipo Cliente | calcular_beneficio() | Fórmula |
-|-------------|----------------------|---------|
-| Regular | 4 * 100 | nivel_satisfacción * 100 |
-| Premium | 5000 | (puntos * 10) + (descuento * 1000) |
-| Corporativo | 3100 | (empleados * 100) + (descuento * 5000) |
+| Regular     | nivel=4 → $400 | nivel_satisfaccion × $100                 |
+| Premium     | pts=250, desc=15% → $2.650 | (puntos × 10) + (descuento × 1000)  |
+| Corporativo | 150 emp, 20% → $30.000 | empleados × $1000 × descuento_volumen |
+
 
 ### Método Polimórfico en Reporte
 
@@ -365,8 +366,9 @@ cliente = ClientePremium(
 )
 
 # 4. Cálculo de beneficio (Polimorfismo)
-beneficio = cliente.calcular_beneficio()  # Resultado: 4000
-# (250 * 10) + (0.15 * 1000) = 2500 + 1500 = 4000
+beneficio = cliente.calcular_beneficio()  # Resultado: 2650
+# (250 * 10) + (0.15 * 1000) = 2500 + 150 = 2650
+
 ```
 
 ### Matriz de POO en GIC
@@ -449,7 +451,8 @@ class ClientePremium(Cliente):
 
 class ClienteCorporativo(Cliente):
     def calcular_beneficio(self):
-        return (self.numero_empleados * 100) + (self.descuento_volumen * 5000)
+        return float(self.numero_empleados * 1000 * self.descuento_volumen)
+
 
 # Uso simple y consistente
 gestor.crear_cliente('regular', nombre="Juan", ...)
