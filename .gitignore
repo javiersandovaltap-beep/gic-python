@@ -18,3 +18,9 @@ logs/*.log
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Datos y logs de prueba
+data/clientes_test.json
+data/clientes_test_export.csv
+data/respaldos/
+logs/
